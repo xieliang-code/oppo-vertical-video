@@ -5,21 +5,35 @@ import { useSwipeable } from "react-swipeable";
 const VideoSwipe: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isClient, setIsClient] = useState<boolean>(false);
+  const [showCatchUpMessage, setShowCatchUpMessage] = useState<boolean>(false); // 用于显示提示信息
 
   const videos: string[] = ["/video1.mp4", "/video2.mp4", "/video3.mp4"];
 
   const [isAtStart, setIsAtStart] = useState<boolean>(false);
   const [isAtEnd, setIsAtEnd] = useState<boolean>(false);
 
-
   // 滑动事件处理函数
   const handleSwipe = (direction: string) => {
     if (direction === "Up" && !isAtEnd) {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % videos.length);
+      // 滑动向上，切换到下一个视频
+      setCurrentIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % videos.length;
+        return nextIndex;
+      });
+      setShowCatchUpMessage(false); // 重置提示
     } else if (direction === "Down" && !isAtStart) {
-      setCurrentIndex(
-        (prevIndex) => (prevIndex - 1 + videos.length) % videos.length
-      );
+      // 滑动向下，切换到上一个视频
+      setCurrentIndex((prevIndex) => {
+        const previousIndex = (prevIndex - 1 + videos.length) % videos.length;
+        return previousIndex;
+      });
+      setShowCatchUpMessage(false); // 重置提示
+    } else if (direction === "Up" && isAtEnd) {
+      // 已经到达最后一个视频时，不做任何操作，显示提示
+      setShowCatchUpMessage(true);
+    } else if (direction === "Down" && isAtStart) {
+      // 已经到达第一个视频时，不做任何操作，显示提示
+      setShowCatchUpMessage(true);
     }
   };
 
@@ -74,7 +88,6 @@ const VideoSwipe: React.FC = () => {
             muted
             loop
             autoPlay
-            controls
             style={{
               width: "100%",
               height: "100%",
@@ -82,6 +95,10 @@ const VideoSwipe: React.FC = () => {
           />
         </motion.div>
       ))}
+
+      {showCatchUpMessage && (
+        <div className="catch-up-message">All catch up!</div>
+      )}
     </div>
   );
 };
