@@ -5,33 +5,36 @@ import { useSwipeable } from "react-swipeable";
 const VideoSwipe: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isClient, setIsClient] = useState<boolean>(false);
-  const [showCatchUpMessage, setShowCatchUpMessage] = useState<boolean>(false); // 用于显示提示信息
-
+  const [showCatchUpMessage, setShowCatchUpMessage] = useState<boolean>(false);
+  const [showFirstVideoMessage, setShowFirstVideoMessage] =
+    useState<boolean>(false);
   const videos: string[] = ["/video1.mp4", "/video2.mp4", "/video3.mp4"];
 
   const [isAtStart, setIsAtStart] = useState<boolean>(false);
   const [isAtEnd, setIsAtEnd] = useState<boolean>(false);
 
-  // 滑动事件处理函数
   const handleSwipe = (direction: string) => {
     if (direction === "Up" && !isAtEnd) {
-      // 滑动向上，切换到下一个视频
       setCurrentIndex((prevIndex) => (prevIndex + 1) % videos.length);
-      setShowCatchUpMessage(false); // 重置提示
+      setShowCatchUpMessage(false);
+      setShowFirstVideoMessage(false);
     } else if (direction === "Down" && !isAtStart) {
-      // 滑动向下，切换到上一个视频
-      setCurrentIndex((prevIndex) => (prevIndex - 1 + videos.length) % videos.length);
-      setShowCatchUpMessage(false); // 重置提示
+      setCurrentIndex(
+        (prevIndex) => (prevIndex - 1 + videos.length) % videos.length
+      );
+      setShowCatchUpMessage(false);
+      setShowFirstVideoMessage(false);
     } else if (direction === "Up" && isAtEnd) {
-      // 已经到达最后一个视频时，不做任何操作，显示提示
       setShowCatchUpMessage(true);
     } else if (direction === "Down" && isAtStart) {
-      // 已经到达第一个视频时，不做任何操作，显示提示
-      setShowCatchUpMessage(true);
+      console.log("Down to first video");
+      if (window.pictorialWebApi) {
+        window.pictorialWebApi.setCanSlideDownToClose(true);
+      }
+      setShowFirstVideoMessage(true);
     }
   };
 
-  // 使用 react-swipeable 处理滑动事件
   const handlers = useSwipeable({
     onSwipedUp: () => handleSwipe("Up"),
     onSwipedDown: () => handleSwipe("Down"),
@@ -42,20 +45,40 @@ const VideoSwipe: React.FC = () => {
   useEffect(() => {
     setIsAtStart(currentIndex === 0);
     setIsAtEnd(currentIndex === videos.length - 1);
+
+    if (currentIndex === 0) {
+      console.log("First Video");
+      if (window.pictorialWebApi) {
+        window.pictorialWebApi.setCanSlideDownToClose(true);
+      }
+      setShowFirstVideoMessage(true);
+
+      // 设置2秒后自动隐藏提示
+      const timer = setTimeout(() => {
+        setShowFirstVideoMessage(false);
+      }, 2000);
+
+      // 清理定时器
+      return () => clearTimeout(timer);
+    } else {
+      if (window.pictorialWebApi) {
+        window.pictorialWebApi.setCanSlideDownToClose(false);
+      }
+      setShowFirstVideoMessage(false);
+    }
   }, [currentIndex]);
 
   useEffect(() => {
-    setIsClient(true); // 客户端渲染完成
+    setIsClient(true);
   }, []);
 
   if (!isClient) {
-    return <div>Loading...</div>; // 客户端渲染前的加载状态
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="video-container" {...handlers}>
       {videos.map((video, index) => {
-        // 当前视频在屏幕上的位置
         const offset = index - currentIndex;
 
         return (
@@ -72,8 +95,8 @@ const VideoSwipe: React.FC = () => {
               y: offset < 0 ? "100%" : "-100%", // 离开时控制滑动方向
             }}
             transition={{
-              duration: 0.5, // 动画持续时间
-              ease: "easeInOut", // 动画缓动
+              duration: 0.5,
+              ease: "easeInOut",
             }}
             style={{
               position: "absolute",
@@ -103,6 +126,10 @@ const VideoSwipe: React.FC = () => {
 
       {showCatchUpMessage && (
         <div className="catch-up-message">All catch up!</div>
+      )}
+
+      {showFirstVideoMessage && (
+        <div className="first-video-message">This is the first video!</div>
       )}
     </div>
   );
